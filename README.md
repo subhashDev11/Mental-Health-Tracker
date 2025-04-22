@@ -31,47 +31,26 @@ Additionally:
 
 ## 📚 Tech Highlights
 
-- 🚀 **FastAPI** — Super-fast Python backend
-- 📦 **Pydantic** — Clean, robust, and auto-validated data models
-- 🖼️ **Flutter** — Single UI codebase for Web and Mobile
-- 🛢️ **MongoDB** — Cloud-native NoSQL database
-- 🔥 **Single Codebase** — Flutter delivers for both platforms
+-  **FastAPI** — Super-fast Python backend
+-  **Pydantic** — Clean, robust, and auto-validated data models
+-  **Flutter** — Single UI codebase for Web and Mobile
+-  **MongoDB** — Cloud-native NoSQL database
+-  **Single Codebase** — Flutter delivers for both platforms
 
 ---
 
-## 🚀 Features
+## Features
 
-- 📝 Mood Tracking with personal notes
-- 📔 Private Journal Entries
-- 🎯 Goal Setting and Wellness Milestones
-- 📊 Mood Analytics and Visualization
-- 🔒 Secure Authentication (Signup, Login)
-- 🌐 Fully Responsive (Web, Mobile Devices)
+-  Mood Tracking with personal notes
+-  Private Journal Entries
+-  Goal Setting and Wellness Milestones
+-  Mood Analytics and Visualization
+-  Secure Authentication (Signup, Login)
+-  Fully Responsive (Web, Mobile Devices)
 
 ---
 
-## 🛠️ Project Structure
-
-mental-health-tracker/
-│
-├── backend/             
-│   ├── app/
-│   │   ├── main.py      
-│   │   ├── models/      
-│   │   ├── routes/       
-│   │   └── services/    
-│   ├── pyproject.toml    
-│
-├── frontend/            
-│   ├── lib/
-│   │   ├── screens/      
-│   │   ├── services/    
-│   │   ├── models/       
-│   ├── pubspec.yaml      
-│
-└── README.md             
-
-## 🧩 Getting Started
+## Getting Started
 
 ### 1. Clone the repository
 ```bash
@@ -113,15 +92,15 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 ## ✨ Future Improvements
 
-- 🔔 Push Notifications for daily check-ins
-- 📴 Offline Support with local storage (Flutter DB)
-- 🤖 AI-based Mood and Journal Recommendations
-- 📊 More Analytics: Stress vs Sleep, Therapy Effectiveness
-- 📱 Wearable Device Integration (Fitbit, Apple Health, Google Fit)
-- 🧘‍♂️ Meditation & Breathing Exercises Module
-- 🔒 Two-Factor Authentication (2FA) for added security
+-  Push Notifications for daily check-ins
+-  Offline Support with local storage (Flutter DB)
+-  AI-based Mood and Journal Recommendations
+-  More Analytics: Stress vs Sleep, Therapy Effectiveness
+-  Wearable Device Integration (Fitbit, Apple Health, Google Fit)
+-  Meditation & Breathing Exercises Module
+-  Two-Factor Authentication (2FA) for added security
 
-## 🧑‍💻 Contributing
+## Contributing
 
 We welcome contributions from everyone! ❤️
 
