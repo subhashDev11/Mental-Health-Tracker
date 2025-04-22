@@ -1,0 +1,4 @@
+better_days/ios/Podfile.lock
+*.pyc
+/backend/.idea
+/backend/app/__pycache__
