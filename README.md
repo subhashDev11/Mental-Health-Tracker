@@ -59,6 +59,7 @@ Additionally:
 <img width="488" alt="Screenshot 2025-04-22 at 5 26 54 PM" src="https://github.com/user-attachments/assets/388546c9-40ce-4861-907b-0da63424b400" />
 <img width="496" alt="Screenshot 2025-04-22 at 5 27 07 PM" src="https://github.com/user-attachments/assets/5fbd14f3-7053-4760-8421-d2c05f9113e2" />
 <img width="501" alt="Screenshot 2025-04-22 at 5 27 19 PM" src="https://github.com/user-attachments/assets/2ba5febd-aa77-4bed-b8b3-051a3b979ff3" />
+![Simulator Screenshot - iPhone 16 Plus - 2025-04-22 at 17 30 36](https://github.com/user-attachments/assets/bf9ad1b4-f936-473b-bda3-35cac8af38c3)
 
 
 ---
