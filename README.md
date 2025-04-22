@@ -56,11 +56,10 @@ Additionally:
 <img width="1503" alt="Screenshot 2025-04-22 at 5 18 16 PM" src="https://github.com/user-attachments/assets/0a3f7ab6-fba0-47ad-a60f-e0cb20607d98" />
 <img width="1500" alt="Screenshot 2025-04-22 at 5 18 26 PM" src="https://github.com/user-attachments/assets/f7f382d4-594d-4b79-b570-a8da1d09500a" />
 
-<img width="488" alt="Screenshot 2025-04-22 at 5 26 54 PM" src="https://github.com/user-attachments/assets/388546c9-40ce-4861-907b-0da63424b400" />
-<img width="496" alt="Screenshot 2025-04-22 at 5 27 07 PM" src="https://github.com/user-attachments/assets/5fbd14f3-7053-4760-8421-d2c05f9113e2" />
-<img width="501" alt="Screenshot 2025-04-22 at 5 27 19 PM" src="https://github.com/user-attachments/assets/2ba5febd-aa77-4bed-b8b3-051a3b979ff3" />
-![Simulator Screenshot - iPhone 16 Plus - 2025-04-22 at 17 30 36](https://github.com/user-attachments/assets/bf9ad1b4-f936-473b-bda3-35cac8af38c3)
-
+<img width="488" alt="Screenshot 2025-04-22 at 5 26 54 PM" src="https://github.com/user-attachments/assets/59188b8d-3d36-40f7-8857-d5beb0de4ca6" />
+<img width="496" alt="Screenshot 2025-04-22 at 5 27 07 PM" src="https://github.com/user-attachments/assets/ebc00280-2cb0-4116-a121-b0cb3d0331e7" />
+<img width="501" alt="Screenshot 2025-04-22 at 5 27 19 PM" src="https://github.com/user-attachments/assets/d7dc3b65-70ed-49ff-a205-81dc9a33b3ff" />
+![Simulator Screenshot - iPhone 16 Plus - 2025-04-22 at 17 30 36](https://github.com/user-attachments/assets/04f87fbe-1594-4abd-a623-2d73de65e0d6)
 
 ---
 
