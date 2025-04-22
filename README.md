@@ -60,7 +60,7 @@ mental-health-tracker/
 │   │   ├── models/       # Pydantic data models
 │   │   ├── routes/       # API endpoints
 │   │   └── services/     # Core logic / database interactions
-│   ├── requirements.txt  # Python dependencies
+│   ├── pyproject.toml    # Poetry dependency management
 │
 ├── frontend/            # Flutter frontend
 │   ├── lib/
@@ -70,7 +70,6 @@ mental-health-tracker/
 │   ├── pubspec.yaml      # Flutter dependencies
 │
 └── README.md             # (This file)
----
 
 ## 🧩 Getting Started
 
