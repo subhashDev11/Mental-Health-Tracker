@@ -13,13 +13,13 @@ services:
       - MONGO_URL=mongodb://mongo:27017
     restart: unless-stopped
 
-  frontend:
-    build: ./frontend
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-    restart: unless-stopped
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "5173:5173"
+  #   volumes:
+  #     - ./frontend:/app
+  #   restart: unless-stopped
 
   mongo:
     image: mongo:6

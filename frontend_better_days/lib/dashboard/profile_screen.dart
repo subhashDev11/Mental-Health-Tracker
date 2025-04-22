@@ -1,3 +1,4 @@
+import 'package:better_days/common/responsive_widget.dart';
 import 'package:better_days/dashboard/edit_profile.dart';
 import 'package:better_days/models/user.dart';
 import 'package:better_days/services/auth_service.dart';
@@ -19,6 +20,112 @@ class ProfileScreen extends StatelessWidget {
       return SizedBox();
     }
 
+    final body =
+    SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        children: [
+          // Profile Header
+          _buildProfileHeader(context, user),
+          const SizedBox(height: 24),
+
+          // Personal Information Section
+          _buildSectionHeader(theme, 'Personal Information'),
+          const SizedBox(height: 12),
+          _buildInfoCard(
+            context,
+            children: [
+              _buildInfoRow(theme, Icons.person, 'Name', user.name),
+              _buildInfoRow(theme, Icons.email, 'Email', user.email),
+              _buildInfoRow(
+                theme,
+                Icons.cake,
+                'Date of Birth',
+                DateFormat('MMMM d, y').format(user.dob),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Health Information Section
+          _buildSectionHeader(theme, 'Health Information'),
+          const SizedBox(height: 12),
+          _buildInfoCard(
+            context,
+            children: [
+              if (user.height != null)
+                _buildInfoRow(
+                  theme,
+                  Icons.height,
+                  'Height',
+                  '${user.height?.toStringAsFixed(1)} cm',
+                ),
+              if (user.weight != null)
+                _buildInfoRow(
+                  theme,
+                  Icons.monitor_weight,
+                  'Weight',
+                  '${user.weight?.toStringAsFixed(1)} kg',
+                ),
+              if (user.weight != null && user.height != null)
+                _buildInfoRow(
+                  theme,
+                  Icons.calculate,
+                  'BMI',
+                  _calculateBMI(
+                    user.height!,
+                    user.weight!,
+                  ).toStringAsFixed(1),
+                ),
+            ],
+          ),
+          const SizedBox(height: 32),
+
+          // Account Actions
+          _buildSectionHeader(theme, 'Account'),
+          const SizedBox(height: 12),
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: theme.colorScheme.outline.withOpacity(0.1),
+              ),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.logout),
+                  title: const Text('Logout'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    _showLogoutConfirmation(context);
+                  },
+                ),
+                Divider(
+                  height: 1,
+                  color: theme.colorScheme.outline.withOpacity(0.1),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text(
+                    'Delete Account',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: Colors.red,
+                  ),
+                  onTap: () {
+                    _showDeleteConfirmation(context);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
     return Scaffold(
       appBar: AppBar(
         title: const Text("My Profile"),
@@ -45,107 +152,27 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
+      body:
+      ResponsiveWidget(
+        mobView: body,
+        deskView: Row(
           children: [
-            // Profile Header
-            _buildProfileHeader(context, user),
-            const SizedBox(height: 24),
-
-            // Personal Information Section
-            _buildSectionHeader(theme, 'Personal Information'),
-            const SizedBox(height: 12),
-            _buildInfoCard(
-              context,
-              children: [
-                _buildInfoRow(theme, Icons.person, 'Name', user.name),
-                _buildInfoRow(theme, Icons.email, 'Email', user.email),
-                _buildInfoRow(
-                  theme,
-                  Icons.cake,
-                  'Date of Birth',
-                  DateFormat('MMMM d, y').format(user.dob),
-                ),
-              ],
+            Expanded(
+              flex: 2,
+              child: SizedBox(),
             ),
-            const SizedBox(height: 24),
-
-            // Health Information Section
-            _buildSectionHeader(theme, 'Health Information'),
-            const SizedBox(height: 12),
-            _buildInfoCard(
-              context,
-              children: [
-                if (user.height != null)
-                  _buildInfoRow(
-                    theme,
-                    Icons.height,
-                    'Height',
-                    '${user.height?.toStringAsFixed(1)} cm',
-                  ),
-                if (user.weight != null)
-                  _buildInfoRow(
-                    theme,
-                    Icons.monitor_weight,
-                    'Weight',
-                    '${user.weight?.toStringAsFixed(1)} kg',
-                  ),
-                if (user.weight != null && user.height != null)
-                  _buildInfoRow(
-                    theme,
-                    Icons.calculate,
-                    'BMI',
-                    _calculateBMI(
-                      user.height!,
-                      user.weight!,
-                    ).toStringAsFixed(1),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 32),
-
-            // Account Actions
-            _buildSectionHeader(theme, 'Account'),
-            const SizedBox(height: 12),
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.1),
+            Expanded(
+              flex: 6,
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(15),
+                  child: body,
                 ),
               ),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.logout),
-                    title: const Text('Logout'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      _showLogoutConfirmation(context);
-                    },
-                  ),
-                  Divider(
-                    height: 1,
-                    color: theme.colorScheme.outline.withOpacity(0.1),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.delete, color: Colors.red),
-                    title: const Text(
-                      'Delete Account',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                    trailing: const Icon(
-                      Icons.chevron_right,
-                      color: Colors.red,
-                    ),
-                    onTap: () {
-                      _showDeleteConfirmation(context);
-                    },
-                  ),
-                ],
-              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: SizedBox(),
             ),
           ],
         ),

@@ -1,6 +1,4 @@
 import 'dart:developer';
-import 'dart:nativewrappers/_internal/vm/lib/typed_data_patch.dart';
-
 import 'package:better_days/core/navigator_service.dart';
 import 'package:better_days/services/auth_service.dart';
 import 'package:better_days/utils/constants.dart';

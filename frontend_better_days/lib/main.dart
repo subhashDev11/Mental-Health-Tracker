@@ -17,8 +17,6 @@ import 'mood/mood_list_screen.dart';
 import 'services/auth_service.dart';
 import 'common/protected_route.dart';
 
-
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
