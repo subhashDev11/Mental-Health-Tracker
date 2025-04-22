@@ -51,6 +51,7 @@ Additionally:
 ---
 
 ## 🛠️ Project Structure
+
 mental-health-tracker/
 │
 ├── backend/             # FastAPI + Pydantic backend
@@ -69,7 +70,6 @@ mental-health-tracker/
 │   ├── pubspec.yaml      # Flutter dependencies
 │
 └── README.md             # (This file)
-
 ---
 
 ## 🧩 Getting Started
@@ -80,12 +80,21 @@ git clone https://github.com/your-username/mental-health-tracker.git
 cd mental-health-tracker
 ```
 
-### 2. Setup Backend (FastAPI + Pydantic)
+### 2. Setup Backend (FastAPI + Pydantic with Poetry)
+```
 cd backend
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
+# Install Poetry if not already installed
+pip install poetry
+
+# Install dependencies
+poetry install
+
+# Activate the virtual environment
+poetry shell
+
+# Run the FastAPI server
 uvicorn app.main:app --reload
+```
 
 ### 3. Setup Frontend (Flutter)
 cd frontend
@@ -93,12 +102,15 @@ flutter pub get
 flutter run -d chrome   # Run for Web
 flutter run             # Run for Mobile (iOS/Android emulator or device)
 
+### 4. Setup Environment Variables
 Create a .env file inside the backend/ directory:
-
+```env
 DATABASE_URL=mongodb+srv://<username>:<password>@cluster.mongodb.net/<dbname>?retryWrites=true&w=majority
 SECRET_KEY=your_secret_key
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
 
 ## ✨ Future Improvements
 
@@ -141,3 +153,12 @@ By building tools like this, we empower individuals to:
 
 _Keep going. Stay strong. Your story matters._ ❤️  
 Together, we can make mental wellness a priority!
+
+## Built with Love and Purpose
+
+⸻
+
+✅ Now everything is merged into one clean README.
+✅ Professional layout — project info, setup guide, contribution, and future roadmap.
+✅ Poetry used for backend installation, as you wanted.
+
