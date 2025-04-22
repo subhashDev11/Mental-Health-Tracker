@@ -50,6 +50,19 @@ Additionally:
 
 ---
 
+## Screenshots-
+
+<img width="1502" alt="Screenshot 2025-04-22 at 5 17 55 PM" src="https://github.com/user-attachments/assets/cf6593fc-2c34-4e48-80bd-f973da700b6a" />
+<img width="1503" alt="Screenshot 2025-04-22 at 5 18 16 PM" src="https://github.com/user-attachments/assets/0a3f7ab6-fba0-47ad-a60f-e0cb20607d98" />
+<img width="1500" alt="Screenshot 2025-04-22 at 5 18 26 PM" src="https://github.com/user-attachments/assets/f7f382d4-594d-4b79-b570-a8da1d09500a" />
+
+<img width="488" alt="Screenshot 2025-04-22 at 5 26 54 PM" src="https://github.com/user-attachments/assets/388546c9-40ce-4861-907b-0da63424b400" />
+<img width="496" alt="Screenshot 2025-04-22 at 5 27 07 PM" src="https://github.com/user-attachments/assets/5fbd14f3-7053-4760-8421-d2c05f9113e2" />
+<img width="501" alt="Screenshot 2025-04-22 at 5 27 19 PM" src="https://github.com/user-attachments/assets/2ba5febd-aa77-4bed-b8b3-051a3b979ff3" />
+
+
+---
+
 ## Getting Started
 
 ### 1. Clone the repository
