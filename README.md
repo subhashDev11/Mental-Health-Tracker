@@ -54,22 +54,22 @@ Additionally:
 
 mental-health-tracker/
 │
-├── backend/             # FastAPI + Pydantic backend
+├── backend/             
 │   ├── app/
-│   │   ├── main.py       # Application entry
-│   │   ├── models/       # Pydantic data models
-│   │   ├── routes/       # API endpoints
-│   │   └── services/     # Core logic / database interactions
-│   ├── pyproject.toml    # Poetry dependency management
+│   │   ├── main.py      
+│   │   ├── models/      
+│   │   ├── routes/       
+│   │   └── services/    
+│   ├── pyproject.toml    
 │
-├── frontend/            # Flutter frontend
+├── frontend/            
 │   ├── lib/
-│   │   ├── screens/      # UI screens (Web & Mobile)
-│   │   ├── services/     # REST API service layer
-│   │   ├── models/       # Dart data models
-│   ├── pubspec.yaml      # Flutter dependencies
+│   │   ├── screens/      
+│   │   ├── services/    
+│   │   ├── models/       
+│   ├── pubspec.yaml      
 │
-└── README.md             # (This file)
+└── README.md             
 
 ## 🧩 Getting Started
 
