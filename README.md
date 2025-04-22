@@ -54,7 +54,7 @@ Additionally:
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/mental-health-tracker.git
+git clone https://github.com/subhashDev11/Mental-Health-Tracker.git
 cd mental-health-tracker
 ```
 
