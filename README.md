@@ -15,7 +15,7 @@ Built entirely on the powerful **FFM Stack** (**Flutter + FastAPI + MongoDB**), 
 
 ---
 
-## 🌟 The FFM Stack
+## The FFM Stack
 
 | Tech          | Usage                                          |
 | ------------- | ---------------------------------------------- |
@@ -29,7 +29,7 @@ Additionally:
 
 ---
 
-## 📚 Tech Highlights
+## Tech Highlights
 
 -  **FastAPI** — Super-fast Python backend
 -  **Pydantic** — Clean, robust, and auto-validated data models
@@ -132,7 +132,7 @@ You can also:
 
 Let's make this project better together! 🚀
 
-## 🌈 Support Mental Health
+## Support Mental Health
 
 Mental health matters.
 
