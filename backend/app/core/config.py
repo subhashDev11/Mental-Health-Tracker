@@ -12,7 +12,7 @@ DOTENV = os.path.join(os.path.dirname(__file__), ENV_PATH)
 
 
 class Settings(BaseSettings):
-    MONGO_URI: str
+    DB_URI: str
     SECRET_KEY: str
     ALGO: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int

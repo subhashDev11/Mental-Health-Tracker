@@ -1,13 +1,15 @@
 from datetime import datetime
 
-from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pymongo.errors import DuplicateKeyError, OperationFailure, WriteError, WriteConcernError
+from sqlalchemy import select, func
+from sqlalchemy.orm import Session
 
 from app.core.response_model import APIResponse
-from app.database.connection import journal_collection
+from app.database.get_db import get_db
+from app.models.user import User
 from app.routes.auth import get_auth_user, credentials_exception
 from app.schemas.journal import JournalCreate, JournalOut
+from app.models.journal import Journal
 
 journalRouter = APIRouter()
 
@@ -16,33 +18,41 @@ journalRouter = APIRouter()
 async def create_journal(
         journal: JournalCreate,
         current_user: dict = Depends(get_auth_user),
+        db: Session = Depends(get_db)
 ):
     if not current_user:
         raise credentials_exception
 
     try:
-        dump = journal.model_dump()
-        dump['created_by'] = ObjectId(current_user['id'])
-        dump["created_at"] = datetime.now()
+        db_journal = Journal(
+            content=journal.content,
+            title=journal.title,
+            created_by=current_user['id'],
+            created_at=datetime.now(),
+            tags=journal.tags
+        )
 
-        result = await journal_collection.insert_one(dump)
-        created_journal = await journal_collection.find_one({
-            "_id": result.inserted_id,
-        })
+        db.add(db_journal)
+        db.commit()
+        db.refresh(db_journal)
 
-        created_journal['_id'] = str(created_journal['_id'])
+        journal_out = JournalOut(
+            title=db_journal.title,
+            content=db_journal.content,
+            tags=db_journal.tags,
+            created_at=db_journal.created_at,
+            created_by={
+                "id": db_journal.created_by,
+                "name": current_user['name'],
+            },
+            id=str(db_journal.id),
+        )
 
         return APIResponse.success_response(
-            data=JournalOut(**created_journal).model_dump(
-                by_alias=True
-            ),
+            data=journal_out.model_dump(),
             message="Journal created successfully",
         )
 
-    except DuplicateKeyError:
-        return APIResponse.error_response(error="Duplicate entry detected.")
-    except (OperationFailure, WriteError, WriteConcernError):
-        return APIResponse.error_response(error="Database operation failed.")
     except Exception as e:
         return APIResponse.error_response(error=str(e))
 
@@ -50,34 +60,39 @@ async def create_journal(
 @journalRouter.get("/getById/{journal_id}")
 async def get_journal_by_id(
         journal_id: str,
-        current_user: dict = Depends(get_auth_user)
+        current_user: dict = Depends(get_auth_user),
+        db: Session = Depends(get_db)
 ):
-    if not ObjectId.is_valid(journal_id):
+    if not journal_id:
         raise HTTPException(status_code=400, detail="Invalid journal ID")
 
     if not current_user:
         raise credentials_exception
 
-    if not journal_id:
-        return APIResponse.error_response(
-            message="Please provide the journal id",
-        )
+    db_journal = db.query(Journal).filter(
+        Journal.id == journal_id
+    ).first()
 
-    result = await journal_collection.find_one({
-        "_id": ObjectId(journal_id),
-    })
-
-    if result is None:
+    if db_journal is None:
         raise HTTPException(
             status_code=404,
             detail="Journal not found"
         )
-    result["_id"] = str(result["_id"])
+
+    journal_out = JournalOut(
+        title=db_journal.title,
+        content=db_journal.content,
+        tags=db_journal.tags,
+        created_at=db_journal.created_at,
+        created_by={
+            "id": db_journal.created_by,
+            "name": current_user['name'],
+        },
+        id=str(db_journal.id),
+    )
 
     return APIResponse.success_response(
-        data=JournalOut(**result).model_dump(
-            by_alias=True
-        ),
+        data=journal_out.model_dump(),
         message="Journal found"
     )
 
@@ -86,49 +101,47 @@ async def get_journal_by_id(
 async def get_all_journals(
         skip: int = Query(0, ge=0),
         limit: int = Query(10, ge=1, le=100),
-        current_user: dict = Depends(get_auth_user)
+        current_user: dict = Depends(get_auth_user),
+        db: Session = Depends(get_db)
 ):
     if not current_user:
         raise credentials_exception
 
     try:
 
-        pipeline = [
-            {"$sort": {"created_at": -1}},
-            {"$skip": skip},
-            {"$limit": limit},
-            {
-                "$lookup": {
-                    "from": "users",
-                    "localField": "created_by",
-                    "foreignField": "_id",
-                    "as": "user_info"
-                }
-            },
-            {
-                "$unwind": {
-                    "path": "$user_info",
-                    "preserveNullAndEmptyArrays": True
-                }
+        stmt = (
+            select(
+                Journal,
+                User.id.label("user_id"),
+                User.name.label("user_name")
+            )
+            .join(User, Journal.created_by == User.id, isouter=True)
+            .order_by(Journal.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+
+        result = db.execute(stmt)
+        journal_list = []
+
+        for journal, user_id, user_name in result:
+            journal_dict = {
+                "id": str(journal.id),
+                "title": journal.title,
+                "content": journal.content,
+                "created_at": journal.created_at,
+                "tags": journal.tags,
+                # "updated_at": journal.updated_at,
+                "created_by": {
+                    "id": str(user_id),
+                    "name": user_name
+                } if user_id else None
             }
-        ]
 
-        cursor = journal_collection.aggregate(pipeline)
-        journal_list = list()
-
-        async for i in cursor:
-            i["_id"] = str(i['_id'])
-            i["created_by"] = {
-                "id": str(i["user_info"]["_id"]),
-                "name": i["user_info"]["name"]
-            } if i.get("user_info") else None
-
-            i.pop("user_info", None)
-
-            d = JournalOut(**i).model_dump(by_alias=True)
+            d = JournalOut(**journal_dict).model_dump(by_alias=True)
             journal_list.append(d)
 
-        total = await journal_collection.count_documents({})
+        total = db.scalar(select(func.count()).select_from(Journal))
 
         return APIResponse.success_response(
             data={
@@ -148,34 +161,43 @@ async def get_all_journals(
 @journalRouter.delete("/delete/{journal_id}")
 async def delete_journal_by_id(
         journal_id: str,
-        current_user: dict = Depends(get_auth_user)
+        current_user: dict = Depends(get_auth_user),
+        db: Session = Depends(get_db),
 ):
-    if not ObjectId.is_valid(journal_id):
-        raise HTTPException(status_code=400, detail="Invalid journal ID")
+    try:
+        if not journal_id:
+            raise HTTPException(status_code=400, detail="Invalid journal ID")
 
-    if not current_user:
-        raise credentials_exception
-    result = await journal_collection.delete_one(
-        {
-            "_id": ObjectId(journal_id)
-        }
-    )
+        if not current_user:
+            raise credentials_exception
 
-    if result.deleted_count == 0:
-        raise HTTPException(
-            status_code=404,
-            detail="Journal not found"
+        journal_to_delete = db.query(Journal).filter(Journal.id == journal_id).first()
+
+        if not journal_to_delete:
+            raise HTTPException(
+                status_code=404,
+                detail="Journal not found"
+            )
+
+        db.delete(journal_to_delete)
+        db.commit()
+
+        return APIResponse.success_response(
+            message="Journal deleted successfully!"
         )
-    return APIResponse.success_response(
-        message="Journal deleted successfully!"
-    )
+    except Exception as e:
+        return APIResponse.error_response(
+            message="Error on deletion of journal",
+            error=str(e)
+        )
 
 
 @journalRouter.get("/getJournalsCreatedByMe")
 async def get_journals_created_by_me(
         skip: int = Query(0, ge=0),
         limit: int = Query(10, ge=1, le=100),
-        current_user: dict = Depends(get_auth_user)
+        current_user: dict = Depends(get_auth_user),
+        db: Session = Depends(get_db),
 ):
     if not current_user:
         raise credentials_exception
@@ -183,23 +205,43 @@ async def get_journals_created_by_me(
     if not current_user['id']:
         raise credentials_exception
 
-    cursor = journal_collection.find({
-        "created_by": current_user['id']
-    }).sort("created_at", -1).skip(skip).limit(limit)
+    stmt = (
+        select(
+            Journal,
+            User.id.label("user_id"),
+            User.name.label("user_name")
+        )
+        .join(User, Journal.created_by == User.id, isouter=True)
+        .filter(Journal.created_by==current_user['id'])
+        .order_by(Journal.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
 
+    result = db.execute(stmt)
 
     journal_list = list()
 
-    async for i in cursor:
-        i["_id"] = str(i['_id'])
-        d = JournalOut(**i).model_dump(
-            by_alias=False
-        )
+    for journal, user_id, user_name in result:
+        journal_dict = {
+            "id": str(journal.id),
+            "title": journal.title,
+            "content": journal.content,
+            "created_at": journal.created_at,
+            "tags": journal.tags,
+            # "updated_at": journal.updated_at,
+            "created_by": {
+                "id": str(user_id),
+                "name": user_name
+            } if user_id else None
+        }
+
+        d = JournalOut(**journal_dict).model_dump(by_alias=True)
         journal_list.append(d)
 
-    total = await journal_collection.count_documents({
-        "created_by": current_user['id'],
-    })
+    total = db.scalar(select(func.count()).select_from(Journal).filter(
+        Journal.created_by == current_user['id']
+    ))
 
     return APIResponse.success_response(
         data={

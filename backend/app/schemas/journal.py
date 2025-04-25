@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, json
 from typing import List, Optional
 from datetime import datetime
+
 
 
 class JournalCreate(BaseModel):
@@ -22,15 +23,17 @@ class JournalCreate(BaseModel):
 
 
 class JournalOut(BaseModel):
-    id: str = Field(..., alias="_id")  # maps MongoDB _id to id
+    id: str
     created_by: dict | None
     content: str
+
     title: str
-    tags: List[str]
+    tags: list[str]
     created_at: Optional[datetime] = None
 
     class Config:
-        validate_by_name = True  # allows using `id` in response
+        validate_by_name = True
+        from_attributes = True
         json_encoders = {
             datetime: lambda v: v.isoformat(),
         }

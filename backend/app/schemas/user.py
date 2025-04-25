@@ -11,27 +11,13 @@ class UserCreate(BaseModel):
     height: float
     weight: float
 
-    def to_map(self) -> dict:
-        return self.model_dump()
-
-    @classmethod
-    def from_map(cls, data: dict):
-        return cls(**data)
-
 
 class UserUpdate(BaseModel):
-    name: str | None
-    dob: datetime | None
-    height: float | None
-    weight: float | None
-    profile_image: str | None
-
-    def to_map(self) -> dict:
-        return self.model_dump()
-
-    @classmethod
-    def from_map(cls, data: dict):
-        return cls(**data)
+    name: Optional[str] = None
+    dob: Optional[datetime] = None
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    profile_image: Optional[str] = None
 
 
 class UserLogin(BaseModel):
@@ -46,3 +32,15 @@ class TokenData(BaseModel):
 class UpdateProfileImage(BaseModel):
     profile_image: str
 
+class UserResponse(BaseModel):
+    id: int
+    email: EmailStr
+    name: str
+    dob: Optional[datetime]
+    height: Optional[float]
+    weight: Optional[float]
+    profile_image: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

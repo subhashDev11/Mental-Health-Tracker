@@ -10,7 +10,6 @@ python = "^3.11"
 fastapi = "^0.115.12"
 pydantic = "^2.11.2"
 uvicorn = "^0.34.0"
-motor = "^3.7.0"
 bcrypt = "^4.3.0"
 cryptography = "^44.0.2"
 python-jose = "^3.4.0"
@@ -21,6 +20,8 @@ pydantic-settings = "^2.8.1"
 dotenv = "^0.9.9"
 email-validator = "^2.2.0"
 httpx = "^0.28.1"
+sqlalchemy = "^2.0.40"
+psycopg2-binary = "^2.9.10"
 
 
 [build-system]

@@ -1,14 +1,17 @@
-from bson import ObjectId
-from datetime import datetime
+from sqlalchemy import Column, Integer, String, JSON, DateTime
+
+from app.database.connection import Base
 
 
-def journal_dict(journal) -> dict:
-    return {
-        "id": str(journal["_id"]),
-        "user_id": str(journal["user_id"]),
-        "content": journal["content"],
-        "tags": journal.get("tags", []),
-        "created_at": journal["created_at"],
-        "title": journal["title"],
-        "create_by": journal['create_by'],
-    }
+class Journal(Base):
+    __tablename__ = "journals"
+
+    id= Column(Integer, primary_key=True, index=True,nullable=False)
+    content= Column(String,nullable=True)
+    title= Column(String,nullable=True)
+    created_by= Column(String,nullable=False)
+    tags = Column(JSON,nullable=True)
+    created_at= Column(DateTime,nullable=False)
+
+    class Config:
+        from_attributes = True

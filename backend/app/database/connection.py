@@ -1,21 +1,16 @@
-import sys
-
-from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo.errors import ConnectionFailure, ConfigurationError
-
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-try:
-    MONGO_URI = settings.MONGO_URI
+DB_URI = settings.DB_URI
 
-    client = AsyncIOMotorClient(MONGO_URI)
-    db = client["mental_health_tracker"]
+engine = create_engine(DB_URI)
 
-    user_collection = db["users"]
-    mood_collection = db["mood"]
-    journal_collection = db["journal"]
-    deleted_user_collection = db["deleted_user"]
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit = False,
+)
 
-except (ConnectionFailure, ConfigurationError) as e:
-    print(f"❌ Failed to connect to MongoDB: {e}")
-    sys.exit(1)  # exit the app if DB connection fails
+Base = declarative_base()

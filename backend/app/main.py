@@ -1,26 +1,31 @@
 import shutil
-import urllib
+from functools import lru_cache
 from pathlib import Path
 
-from bson import ObjectId
 from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from pymongo.errors import PyMongoError
+from fastapi.params import Depends
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 from starlette.staticfiles import StaticFiles
 
 from app.core import config
+from app.core.config import settings
 from app.core.response_model import APIResponse
-from app.database.connection import user_collection
+from app.database.get_db import get_db
+from app.database.connection import engine, Base
+from app.models.user import User
 from app.routes.journal import journalRouter
-from app.routes.mood import moodRouter
+# from app.routes.mood import moodRouter
 from app.routes.auth import authRouter
 from app.routes.daily_quote import dailyQuoteRouter
-from fastapi.middleware.cors import CORSMiddleware
-from functools import lru_cache
-from app.core.config import settings
 
 app = FastAPI()
+
+Base.metadata.create_all(bind=engine)
+
 
 
 def custom_openapi():
@@ -70,10 +75,10 @@ app.include_router(
     prefix="/api/auth"
 )
 
-app.include_router(
-    router=moodRouter,
-    prefix="/api/mood"
-)
+# app.include_router(
+#     router=moodRouter,
+#     prefix="/api/mood"
+# )
 
 app.include_router(
     router=journalRouter,
@@ -86,8 +91,8 @@ app.include_router(
 )
 
 
-@app.exception_handler(PyMongoError)
-async def pymongo_exception_handler(request: Request, exc: PyMongoError):
+@app.exception_handler(SQLAlchemyError)
+async def pymongo_exception_handler(request: Request, exc: SQLAlchemyError):
     return JSONResponse(
         status_code=500,
         content=APIResponse.error_response(
@@ -104,7 +109,8 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 @app.post("/api/upload")
 async def upload_file(
         unique_id: str = Form(...),
-        file: UploadFile = File(...)
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db)
 ):
     try:
         if not file.content_type.startswith(("image/", "application/")):
@@ -120,19 +126,19 @@ async def upload_file(
 
         download_url = f"{settings.LAUNCH_URL}uploads/images/{unique_id}/{file.filename}"
 
-        if unique_id:
-            try:
-                obj_id = ObjectId(unique_id)
-            except Exception:
-                raise HTTPException(status_code=400, detail="Invalid unique_id (not a valid ObjectId)")
+        try:
+            if unique_id:
+                user = db.query(User).filter(User.id == unique_id).first()
 
-            update_result = await user_collection.update_one(
-                {"_id": obj_id},
-                {"$set": {"profile_image": download_url}}
-            )
+                if not user:
+                    raise HTTPException(status_code=404, detail="User not found")
 
-            if update_result.matched_count == 0:
-                raise HTTPException(status_code=404, detail="User not found")
+                user.profile_image = download_url
+                db.commit()
+                db.refresh(user)
+        except Exception as e:
+            print(e)
+
 
         data: dict = {
             "message": "File uploaded successfully",

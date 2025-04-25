@@ -1,26 +1,30 @@
+from datetime import datetime
 
-def user_dict(user) -> dict:
-    return {
-        "id": str(user["_id"]),
-        "email": user["email"],
-        "name": user["name"],
-        "dob": user["dob"],
-        "height": user["height"],
-        "weight": user["weight"],
-        "created_at": user["created_at"],
-        "profile_image": user["profile_image"],
-    }
+from sqlalchemy import Column, Integer, String, Float, DateTime, JSON
+from app.database.connection import Base
 
+class User(Base):
+    __tablename__ = "users"
 
-def user_dict_with_hash(user) -> dict:
-    return {
-        "id": str(user["_id"]),
-        "email": user["email"],
-        "name": user["name"],
-        "dob": user["dob"],
-        "height": user["height"],
-        "weight": user["weight"],
-        "hashed_password": user["hashed_password"],
-        "created_at": user["created_at"],
-        "profile_image": user["profile_image"],
-    }
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    password = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    dob = Column(DateTime, nullable=True)
+    height = Column(Float, nullable=True)
+    weight = Column(Float, nullable=True)
+    profile_image = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=False)
+
+    class Config:
+        from_attributes = True
+
+class DeletedUser(Base):
+    __tablename__ = "deleted_users"
+
+    id = Column(Integer, primary_key=True)
+    original_id = Column(Integer)
+    email = Column(String)
+    reason = Column(String)
+    deleted_at = Column(DateTime, default=datetime.now)
+    user_data = Column(JSON)

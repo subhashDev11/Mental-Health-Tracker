@@ -1,17 +1,17 @@
-from bson import ObjectId
-from fastapi import APIRouter
-from fastapi import Depends, HTTPException, status
+from fastapi import APIRouter, Depends
+from fastapi import  HTTPException, status
 from fastapi.params import Header
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from datetime import timedelta, datetime, timezone
 from passlib.context import CryptContext
 from passlib.exc import InvalidTokenError
+from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.response_model import APIResponse
-from app.database.connection import user_collection, mood_collection, deleted_user_collection
-from app.models.user import user_dict, user_dict_with_hash
-from app.schemas.user import UserCreate, UpdateProfileImage, UserUpdate
+from app.models.user import User, DeletedUser
+from app.schemas.user import UserCreate, UpdateProfileImage, UserResponse, UserUpdate
+from app.database.get_db import get_db
 
 authRouter = APIRouter()
 
@@ -20,47 +20,62 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-async def get_user_by_email(email: str, with_hash: bool) -> dict | None:
-    user = await user_collection.find_one({
-        "email": email,
-    })
+def clean_user(user: User):
+    res = UserResponse.model_validate(user)
+    return res.model_dump()
+
+async def get_user_by_email(
+        email: str,
+        db : Session
+) -> User | None:
+    user = db.query(User).filter(
+        User.email == email
+    ).first()
 
     if not user:
         return None
 
-    if with_hash:
-        return user_dict_with_hash(user)
-    else:
-        return user_dict(user)
+    return user
 
-
-async def create_user(user: UserCreate):
+async def create_user(
+        user: UserCreate,
+        db: Session = Depends(get_db),
+):
     try:
         hashed_password = pwd_context.hash(user.password)
-        db_user = user.model_dump()
-        db_user['hashed_password'] = hashed_password
-        db_user['created_at'] = datetime.now()
-        db_user['profile_image'] = None
-        await user_collection.insert_one(db_user)
-        createdUser = await get_user_by_email(user.email.__str__(), with_hash=False)
+        db_user = User(
+            name=user.name,
+            email=user.email,
+            password=hashed_password,
+            dob=user.dob,
+            height=user.height,
+            weight=user.weight,
+            created_at=datetime.now(),
+            profile_image=None,
+        )
+
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+
+        user_response = clean_user(db_user)
+
         return APIResponse.success_response(
-            data=createdUser,
+            data= user_response,
             message="User registered successfully."
         )
     except Exception as e:
         return APIResponse.error_response(
             message="Failed to register user",
-            error=e,
+            error=str(e),
         )
 
-
-async def authenticate_user(email: str, password: str):
-    user = await get_user_by_email(email, with_hash=True)
+async def authenticate_user(db: Session,email: str, password: str):
+    user = await get_user_by_email(email,db=db)
     if not user:
         return False
-    if not pwd_context.verify(password, user['hashed_password']):
+    if not pwd_context.verify(password, user.password):
         return False
-    user.pop("hashed_password")
     return user
 
 
@@ -96,31 +111,25 @@ def decode_token(token: str):
         return None
 
 
-async def get_current_user(authorization: str, error_exception: HTTPException):
+async def get_current_user(
+        db:Session,
+        authorization: str,
+        error_exception: HTTPException,
+):
     token = authorization
     decoded = decode_token(token)
 
     if not decoded or "sub" not in decoded:
         raise error_exception
-    query = {"email": decoded["sub"]}
-    user = await user_collection.find_one(query)
+
+    user = await get_user_by_email(email=decoded["sub"],db=db)
+
     if not user:
         raise error_exception
 
     return user
 
 
-def clean_user(user):
-    return {
-        "id": str(user["_id"]),
-        "email": user.get("email"),
-        "name": user.get("name"),
-        "dob": user.get("dob"),
-        "height": user.get("height"),
-        "weight": user.get("weight"),
-        "created_at": user.get("created_at"),
-        "profile_image": user.get("profile_image")
-    }
 
 
 credentials_exception = HTTPException(
@@ -131,25 +140,23 @@ credentials_exception = HTTPException(
 
 
 async def get_auth_user(
-        authorization: str = Header(...)
+        authorization: str = Header(...),
+        db: Session = Depends(get_db),
 ):
     if not authorization.startswith("Bearer "):
         raise credentials_exception
-
     token = authorization.split(" ")[1]
-
     if not token:
         raise credentials_exception
-
     try:
-        user = await get_current_user(token, credentials_exception)
+        user = await get_current_user(
+            authorization=token,
+            error_exception=credentials_exception,
+            db= db,
+        )
         if not user:
             raise credentials_exception
         else:
-            # return APIResponse.success_response(
-            #     data=clean_user(user),
-            #     message="User fetched successfully!"
-            # )
             return clean_user(user)
 
     except InvalidTokenError:
@@ -168,23 +175,32 @@ async def get_me(current_user: dict = Depends(get_auth_user)):
 
 
 @authRouter.post("/register")
-async def register(user: UserCreate):
-    email = user.email
+async def register(user: UserCreate,
+                   db: Session = Depends(get_db)):
 
-    db_user = await user_collection.find_one({
-        "email": email,
-    })
-    if db_user:
+    check_user = await get_user_by_email(
+        email=user.email.__str__(),
+        db=db
+    )
+
+    if check_user:
         return APIResponse.error_response(
             message="You are already a part of better days please continue to login",
         )
 
-    return await create_user(user=user)
+    return await create_user(user=user,db=db)
 
 
 @authRouter.post("/token_auth")
-async def token_auth(form_data: OAuth2PasswordRequestForm = Depends(), ):
-    user = await authenticate_user(email=form_data.username, password=form_data.password)
+async def token_auth(
+        form_data: OAuth2PasswordRequestForm = Depends(),
+        db: Session = Depends(get_db)
+):
+    user = await authenticate_user(
+        email=form_data.username,
+        password=form_data.password,
+        db=db,
+    )
     if not user:
         return APIResponse.error_response(message="Incorrect email or password")
     minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES
@@ -199,7 +215,7 @@ async def token_auth(form_data: OAuth2PasswordRequestForm = Depends(), ):
     return APIResponse.success_response(data={
         "access_token": access_token,
         "token_type": "Bearer",
-        "user_data": user
+        "user_data": clean_user(user)
     }, )
 
 
@@ -212,104 +228,108 @@ async def verify_token(token: str):
 
 
 @authRouter.patch("/users/{user_id}/profile-image")
-async def update_profile_image(user_id: str, update: UpdateProfileImage):
-    try:
-        obj_id = ObjectId(user_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid user ID")
+async def update_profile_image(
+        user_id: str,
+        update: UpdateProfileImage,
+        db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == user_id).first()
 
-    update_result = await user_collection.update_one(
-        {"_id": obj_id},
-        {"$set": {"profile_image": update.profile_image}}
-    )
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    if update_result.modified_count == 1:
+    user.profile_image = update.profile_image
+    db.commit()
+    db.refresh(user)
+
+    if user:
         return {"message": "Profile image updated successfully"}
 
     raise HTTPException(status_code=404, detail="User not found")
 
 
-@authRouter.patch("/users/{user_id}/update")
-async def update_user_req(
-        update_user: UserUpdate,
-        current_user: dict = Depends(get_auth_user)
+@authRouter.patch("/users/{user_id}/update-profile")
+async def update_profile(
+        user_id: str,
+        update: UserUpdate,
+        db: Session = Depends(get_db),
 ):
-    try:
-        if not current_user:
-            raise credentials_exception
+    db_user = db.query(User).filter(User.id == user_id).first()
 
-        if not current_user['id']:
-            raise credentials_exception
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-        if not ObjectId(current_user['id']):
-            raise credentials_exception
+    db_user.profile_image = update.profile_image
+    db_user.name = update.name
+    db_user.weight = update.weight
+    db_user.height = update.height
+    db_user.dob = update.dob
 
-        if not update_user:
-            raise HTTPException(status_code=400, detail="Invalid input")
+    db.commit()
+    db.refresh(db_user)
 
-        update_result = await user_collection.update_one(
-            {"_id": ObjectId(current_user['id'])},
-            {"$set": update_user.model_dump()}
-        )
+    if db_user:
+        return {"message": "Profile image updated successfully"}
 
-        if update_result.modified_count == 1:
-            return APIResponse.success_response(
-                message="Profile updated successfully",
-            )
-        else:
-            raise HTTPException(status_code=404, detail="User not found")
-    except Exception as e:
-        print(e)
-        raise HTTPException(
-            status_code=502,
-            detail=str(e)
-        )
+    raise HTTPException(status_code=404, detail="User not found")
 
-@authRouter.delete("/users/{uid}/delete")
+
+@authRouter.delete("/users/{user_id}/delete")
 async def delete_account(
-        reason : str,
-        current_user: dict = Depends(
-            get_auth_user
-        )
+        reason: str,
+        current_user: User = Depends(get_auth_user),  # Changed to User type
+        db: Session = Depends(get_db)
 ):
+    if not current_user:
+        raise credentials_exception
 
-  if not current_user:
-      raise credentials_exception
+    if not reason:
+        return APIResponse.error_response(
+            message="Delete account reason is mandatory."
+        )
 
-  if not current_user['id']:
-      raise credentials_exception
+    try:
+        user_to_delete = db.query(User).filter(User.id == current_user.id).first()
 
-  if not reason:
-      return APIResponse.error_response(
-          message="Delete account reason is mandatory."
-      )
+        if not user_to_delete:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
 
-  res = await user_collection.delete_one({
-      "_id": ObjectId(current_user['id'])
-  })
+        deleted_user_record = {
+            "id": user_to_delete.id,
+            "email": user_to_delete.email,
+            "reason": reason,
+            "data": {
+                "name": user_to_delete.name,
+                "email": user_to_delete.email,
+                "dob": user_to_delete.dob.isoformat() if user_to_delete.dob else None,
+                "height": user_to_delete.height,
+                "weight": user_to_delete.weight,
+                "created_at": user_to_delete.created_at.isoformat()
+            }
+        }
 
-  if res.deleted_count==1:
+        db.delete(user_to_delete)
 
-      try:
-          await deleted_user_collection.insert_one(
-              {
-                  "id": current_user['id'],
-                  "email": current_user['email'],
-                  "reason": reason,
-                  "data": current_user,
-              }
-          )
+        db.add(DeletedUser(
+            original_id=user_to_delete.id,
+            email=user_to_delete.email,
+            reason=reason,
+            user_data=deleted_user_record["data"]
+        ))
 
-      except Exception as e:
-          print(e)
+        db.commit()
 
-      return APIResponse.success_response(
-          message="Account deleted successfully!"
-      )
-  else:
-      raise HTTPException(
-          status_code=404,
-          detail="User not found"
-      )
+        return APIResponse.success_response(
+            message="Account deleted successfully!",
+            data={"deleted_user": deleted_user_record}
+        )
 
-
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting account: {str(e)}"
+        )
