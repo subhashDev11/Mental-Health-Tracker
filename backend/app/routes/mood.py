@@ -1,12 +1,13 @@
-from bson import ObjectId
 from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends, Query
 from datetime import datetime, timedelta
 
-from pymongo.errors import DuplicateKeyError, OperationFailure, WriteError, WriteConcernError
+from sqlalchemy.orm import Session
+from sqlalchemy import desc
 
 from app.core.response_model import APIResponse
-from app.database.connection import mood_collection
+from app.database.get_db import get_db
+from app.models.mood import Mood
 from app.routes.auth import get_auth_user, credentials_exception
 from app.schemas.mood import MoodCreate, MoodOut
 
@@ -15,46 +16,49 @@ moodRouter = APIRouter()
 
 @moodRouter.post("/addMood")
 async def add_mood(
-        mood: MoodCreate,
-        current_user: dict = Depends(get_auth_user)
+        mood_create: MoodCreate,
+        current_user: dict = Depends(get_auth_user),
+        db: Session = Depends(get_db)
 ):
     try:
         if not current_user:
             raise credentials_exception
+
         if not MoodCreate:
             raise HTTPException(
                 status_code=400,
                 detail="Please provided the required args"
             )
 
-        dict_mood: dict = mood.model_dump()
-        dict_mood["user_id"] = current_user['id']
-        dict_mood["created_at"] = datetime.now()
+        db_mood = Mood(
+            note=mood_create.note,
+            mood=mood_create.mood,
+            user_id=current_user['id'],
+            created_at=datetime.now(),
+        )
 
-        result = await mood_collection.insert_one(dict_mood)
+        db.add(db_mood)
+        db.commit()
+        db.refresh(db_mood)
 
-        if not result.inserted_id:
+        if not db_mood.id:
             return APIResponse.error_response(
                 message="Something went wrong."
             )
-        created_mood = await mood_collection.find_one({
-            "_id": result.inserted_id,
-        })
 
-        created_mood["id"] = str(created_mood["_id"])
-        del created_mood["_id"]
-
-        mood_out = MoodOut(**created_mood)
+        mood_out = MoodOut(
+            id = str(db_mood.id),
+            user_id= db_mood.user_id,
+            mood= db_mood.mood,
+            note= db_mood.note,
+            created_at=db_mood.created_at,
+        )
 
         return APIResponse.success_response(
             data=mood_out.model_dump(),
             message="Mood added successfully"
         )
 
-    except DuplicateKeyError:
-        return APIResponse.error_response(error="Duplicate entry detected.")
-    except (OperationFailure, WriteError, WriteConcernError):
-        return APIResponse.error_response(error="Database operation failed.")
     except Exception as e:
         return APIResponse.error_response(error=str(e))
 
@@ -62,29 +66,34 @@ async def add_mood(
 @moodRouter.get("/getMoodById/{mood_id}")
 async def get_mood_by_id(
         mood_id: str,
-        current_user: dict = Depends(
-            get_auth_user
-        )
+        current_user: dict = Depends(get_auth_user),
+        db: Session = Depends(get_db)
 ):
     if not current_user:
         raise credentials_exception
 
-    if not ObjectId.is_valid(mood_id):
+    if not mood_id:
         raise HTTPException(status_code=400, detail="Invalid mood Id")
 
-    result = await mood_collection.find_one({
-        "_id": ObjectId(mood_id),
-    })
+    db_mood = db.query(Mood).filter(
+        Mood.id == str(mood_id)
+    ).first()
 
-    if result is None:
+
+
+    if db_mood is None:
         raise HTTPException(
             status_code=404,
             detail="Mood not found"
         )
 
-    result["id"] = str(result["_id"])
-
-    mood_out = MoodOut(**result)
+    mood_out = MoodOut(
+        id=str(db_mood.id),
+        user_id=db_mood.user_id,
+        mood=db_mood.mood,
+        note=db_mood.note,
+        created_at=db_mood.created_at,
+    )
 
     return APIResponse.success_response(
         data=mood_out.model_dump(),
@@ -94,33 +103,35 @@ async def get_mood_by_id(
 
 @moodRouter.get("/fetchMoods")
 async def get_moods(
-        skip: int = Query(0, le=0, ),
-        limit: int = Query(100, le=100, me=100),
-        current_user: dict = Depends(get_auth_user)
+        skip: int = Query(0, ge=0),
+        limit: int = Query(100, le=100, ge=1),
+        current_user: dict = Depends(get_auth_user),
+        db: Session = Depends(get_db)
 ):
     if not current_user:
         raise credentials_exception
-    result = mood_collection.find({}).limit(limit).skip(skip).sort("create_at", -1)
 
-    moods = list()
+    moods_query = db.query(Mood).order_by(desc(Mood.created_at)).offset(skip).limit(limit)
+    moods = moods_query.all()
+    mood_list = []
 
-    async for m in result:
-        m['id'] = str(m['_id'])
-        mood = MoodOut(**m).model_dump(
-            by_alias=True
+    for mood in moods:
+        mood_out = MoodOut(
+            id=str(mood.id),
+            user_id=mood.user_id,
+            mood=mood.mood,
+            note=mood.note,
+            created_at=mood.created_at,
         )
+        mood_list.append(mood_out.model_dump())
 
-        moods.append(
-            mood
-        )
-
-    total = await mood_collection.count_documents({})
+    total = db.query(Mood).count()
 
     return APIResponse.success_response(
         data={
             "limit": limit,
             "skip": skip,
-            "moods": moods,
+            "moods": mood_list,
             "total": total,
         }
     )
@@ -129,25 +140,24 @@ async def get_moods(
 @moodRouter.delete("/deleteById/{mood_id}")
 async def delete_mood_by_id(
         mood_id: str,
-        current_user: dict = Depends(get_auth_user)
+        current_user: dict = Depends(get_auth_user),
+        db: Session = Depends(get_db)
 ):
     if not current_user:
         raise credentials_exception
 
-    if not ObjectId.is_valid(mood_id):
+    if not mood_id:
         raise HTTPException(status_code=400, detail="Invalid mood Id")
 
-    deleted_res = await mood_collection.delete_one(
-        {
-            "_id": ObjectId(mood_id)
-        }
-    )
-
-    if deleted_res.deleted_count == 0:
+    mood = db.query(Mood).filter(Mood.id == str(mood_id)).first()
+    if not mood:
         raise HTTPException(
             status_code=404,
-            detail="Journal not found"
+            detail="Mood not found"
         )
+
+    db.delete(mood)
+    db.commit()
 
     return APIResponse.success_response(
         message="Mood deleted successfully!"
@@ -156,13 +166,10 @@ async def delete_mood_by_id(
 
 @moodRouter.get("/moods_added_by_me")
 async def get_moods_added_by_me(
-        skip:int = Query(
-            0,le=0
-        ),
-        limit: int = Query(
-            100,le=100, ge=100,
-        ),
-        current_user: dict = Depends(get_auth_user)
+        skip: int = Query(0, ge=0),
+        limit: int = Query(100, le=100, ge=1),
+        current_user: dict = Depends(get_auth_user),
+        db: Session = Depends(get_db)
 ):
     try:
         if not current_user:
@@ -170,37 +177,41 @@ async def get_moods_added_by_me(
         if not current_user['id']:
             raise credentials_exception
 
-        cursors = mood_collection.find({
-            "user_id": current_user['id']
-        }).limit(limit).skip(skip)
+        moods_query = db.query(Mood).filter(
+            Mood.user_id == str(current_user['id'])
+        ).order_by(desc(Mood.created_at)).offset(skip).limit(limit)
 
-        moods = list()
+        moods = moods_query.all()
+        mood_list = []
 
-        async for c in cursors:
-            c["_id"] = str(c["_id"])
-
-            mood = MoodOut(**c).model_dump(
-                by_alias= False
+        for mood in moods:
+            mood_out = MoodOut(
+                id=str(mood.id),
+                user_id=mood.user_id,
+                mood=mood.mood,
+                note=mood.note,
+                created_at=mood.created_at,
             )
-            moods.append(mood)
+            mood_list.append(mood_out.model_dump())
 
-        total = await mood_collection.count_documents({
-            "user_id": current_user['id'],
-        })
+        total = db.query(Mood).filter(
+            Mood.user_id == str(current_user['id'])
+        ).count()
 
         return APIResponse.success_response(
             data={
                 "limit": limit,
                 "skip": skip,
-                "moods": moods,
+                "moods": mood_list,
                 "total": total,
             }
         )
 
     except Exception as e:
         return APIResponse.error_response(
-            error= str(e),
+            error=str(e),
         )
+
 
 def get_today_range():
     now = datetime.now()
@@ -208,10 +219,12 @@ def get_today_range():
     end = start + timedelta(days=1)
     return start, end
 
+
 @moodRouter.get("/today_mood")
 async def get_today_mood(
-        current_user: dict = Depends(get_auth_user)
-) :
+        current_user: dict = Depends(get_auth_user),
+        db: Session = Depends(get_db)
+):
     try:
         if not current_user:
             raise credentials_exception
@@ -220,26 +233,34 @@ async def get_today_mood(
             raise credentials_exception
 
         start, end = get_today_range()
-        mood = await mood_collection.find_one({
-            "created_at": {"$gte": start, "$lt": end}
-        })
+
+        # Get today's mood for current user
+        mood = db.query(Mood).filter(
+            Mood.user_id == str(current_user['id']),
+            Mood.created_at >= start,
+            Mood.created_at < end
+        ).first()
 
         if mood is None:
             return APIResponse.error_response(
                 message="Mood entry not found",
             )
         else:
-            mood['_id'] = str(mood['_id'])
+
+            mood_out = MoodOut(
+                id=str(mood.id),
+                user_id=mood.user_id,
+                mood=mood.mood,
+                note=mood.note,
+                created_at=mood.created_at,
+            )
+
             return APIResponse.success_response(
-                data=MoodOut(**mood).model_dump(
-                    by_alias=False,
-                )
+                data= mood_out.model_dump()
             )
 
     except Exception as e:
         return APIResponse.error_response(
             message="Mood entry not found",
-            error= str(e)
+            error=str(e)
         )
-
-

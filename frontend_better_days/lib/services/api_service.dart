@@ -4,8 +4,10 @@ import 'package:better_days/services/auth_service.dart';
 import 'package:better_days/utils/constants.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:path/path.dart' as path;
 import 'dart:convert';
 import '../models/api_response.dart';
+import 'package:http_parser/http_parser.dart';
 
 String? token;
 
@@ -35,7 +37,13 @@ class ApiService {
       "post",
       Uri.parse("$baseUrl/api/upload"),
     );
-    multipartReq.files.add(http.MultipartFile.fromBytes("file", fileByte));
+    
+    multipartReq.files.add(http.MultipartFile.fromBytes(  "file",
+      fileByte,
+      filename: fileName,
+      contentType: MediaType('image', path.extension(fileName)),
+    ),);
+
     multipartReq.fields.addAll(otherParams);
     multipartReq.headers.addAll({
       'Authorization': 'Bearer $token',

@@ -142,7 +142,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       mapData.remove("id");
 
       var response = await ApiService.instance.patch(
-        "/api/auth/users/${authService.user?.id}/update",
+        "/api/auth/users/${authService.user?.id}/update-profile",
         mapData,
       );
 

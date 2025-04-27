@@ -18,7 +18,7 @@ from app.database.get_db import get_db
 from app.database.connection import engine, Base
 from app.models.user import User
 from app.routes.journal import journalRouter
-# from app.routes.mood import moodRouter
+from app.routes.mood import moodRouter
 from app.routes.auth import authRouter
 from app.routes.daily_quote import dailyQuoteRouter
 
@@ -75,10 +75,10 @@ app.include_router(
     prefix="/api/auth"
 )
 
-# app.include_router(
-#     router=moodRouter,
-#     prefix="/api/mood"
-# )
+app.include_router(
+    router=moodRouter,
+    prefix="/api/mood"
+)
 
 app.include_router(
     router=journalRouter,

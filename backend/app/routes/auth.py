@@ -269,7 +269,9 @@ async def update_profile(
     db.refresh(db_user)
 
     if db_user:
-        return {"message": "Profile image updated successfully"}
+        return APIResponse.success_response(
+            message="Profile image updated successfully",
+        )
 
     raise HTTPException(status_code=404, detail="User not found")
 

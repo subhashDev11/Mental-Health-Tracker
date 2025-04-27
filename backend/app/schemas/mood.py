@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_serializer
 from datetime import datetime
 from typing import Optional
 
@@ -9,9 +9,14 @@ class MoodCreate(BaseModel):
 
 
 class MoodOut(BaseModel):
-    id: str = Field(..., alias="_id")
+    id: str
     user_id: str = None
     mood: int
     note: Optional[str] = None
     created_at: datetime = None
-    create_at: datetime = None
+
+    @model_serializer(mode="plain")
+    def serialize_id_as_str(self) -> dict:
+        data = self.__dict__.copy()
+        data["id"] = str(self.id)
+        return data

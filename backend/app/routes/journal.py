@@ -115,7 +115,7 @@ async def get_all_journals(
                 User.id.label("user_id"),
                 User.name.label("user_name")
             )
-            .join(User, Journal.created_by == User.id, isouter=True)
+            .join(User, Journal.created_by == str(User.id), isouter=True)
             .order_by(Journal.created_at.desc())
             .offset(skip)
             .limit(limit)
